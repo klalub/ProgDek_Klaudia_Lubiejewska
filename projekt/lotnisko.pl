@@ -1,0 +1,138 @@
+:- dynamic(pasa¿er/5).
+:- dynamic(lot/5).
+:- dynamic(rezerwacja/4).
+:- dynamic(odprawa/3).
+:- dynamic(baga¿/4).
+:- dynamic(kontrola_bezpieczeñstwa/3).
+
+% Baza danych pasa¿erów
+% pasa¿er(ID, Imiê, Nazwisko, Narodowoœæ, Numer_Paszportu).
+pasa¿er(1, 'Jan', 'Kowalski', 'Polska', 'ABC123456').
+pasa¿er(2, 'Anna', 'Nowak', 'Polska', 'DEF789012').
+pasa¿er(3, 'John', 'Doe', 'USA', 'XYZ345678').
+pasa¿er(4, 'Marta', 'Lewandowska', 'Polska', 'GHI456789').
+
+% Baza danych lotów
+% lot(Numer_Lotu, Data, Miasto_Odlotu, Miasto_Przylotu, Status).
+lot('LO123', '2024-05-26', 'Warszawa', 'Londyn', 'Na czas').
+lot('LO124', '2024-05-27', 'Warszawa', 'Pary¿', 'Na czas').
+
+% Baza danych rezerwacji
+% rezerwacja(ID_Pasa¿era, Numer_Lotu, Klasa, Miejsce).
+rezerwacja(1, 'LO123', 'Ekonomiczna', '12A').
+rezerwacja(2, 'LO123', 'Ekonomiczna', '12B').
+rezerwacja(3, 'LO124', 'Biznes', '2A').
+rezerwacja(4, 'LO123', 'Ekonomiczna', '15C').
+
+% Baza danych odpraw
+% odprawa(ID_Pasa¿era, Numer_Lotu, Status).
+odprawa(1, 'LO123', 'Odprawiony').
+odprawa(2, 'LO123', 'Odprawiony').
+
+% Baza danych baga¿u
+% baga¿(ID_Pasa¿era, Numer_Lotu, Numer_Bagazu, Status).
+baga¿(1, 'LO123', 'BG001', 'Nadany').
+baga¿(2, 'LO123', 'BG002', 'Nadany').
+
+% Dodawanie nowego pasa¿era
+dodaj_pasa¿era(ID, Imiê, Nazwisko, Narodowoœæ, Numer_Paszportu) :-
+    \+ pasa¿er(ID, _, _, _, _),
+    assert(pasa¿er(ID, Imiê, Nazwisko, Narodowoœæ, Numer_Paszportu)),
+    format('Dodano nowego pasa¿era: ~w~n',[ID]).
+
+% Dodawanie nowego lotu
+dodaj_lot(Numer_Lotu, Data, Miasto_Odlotu, Miasto_Przylotu, Status):-
+    \+ lot(Numer_Lotu, _, _, _, _),
+    assert(lot(Numer_Lotu, Data, Miasto_Odlotu, Miasto_Przylotu, Status)),
+    format('Dodano nowy lot: ~w~n',[Numer_Lotu]).
+
+% Dodawanie nowej rezerwacji
+dodaj_rezerwacje(ID_Pasa¿era, Numer_Lotu, Klasa, Miejsce) :-
+    pasa¿er(ID_Pasa¿era, _, _, _, _),
+    \+ rezerwacja(ID_Pasa¿era, Numer_Lotu, _, _),
+    assert(rezerwacja(ID_Pasa¿era, Numer_Lotu, Klasa, Miejsce)),
+    format('Dodano now¹ rezerwacjê: ~w, ~w.~n',[ID_Pasa¿era,Numer_Lotu]).
+
+% Odprawa pasa¿era
+odprawa_pasa¿era(ID_Pasa¿era, Numer_Lotu) :-
+    rezerwacja(ID_Pasa¿era, Numer_Lotu, _, _),
+    \+ odprawa(ID_Pasa¿era, Numer_Lotu, _),
+    assert(odprawa(ID_Pasa¿era, Numer_Lotu, 'Odprawiony')).
+
+% Dodawanie baga¿u pasa¿era
+dodaj_baga¿(ID_Pasa¿era, Numer_Lotu, Numer_Bagazu) :-
+    odprawa(ID_Pasa¿era, Numer_Lotu, 'Odprawiony'),
+    \+ baga¿(ID_Pasa¿era, Numer_Lotu, Numer_Bagazu, _),
+    assert(baga¿(ID_Pasa¿era, Numer_Lotu, Numer_Bagazu, 'Nadany')),
+    format('Dodano nowy baga¿: ~w~n',[Numer_Bagazu]).
+
+% Aktualizacja statusu baga¿u
+aktualizacja_statusu_baga¿u(Numer_Bagazu, NowyStatus) :-
+    retract(baga¿(ID_Pasa¿era, Numer_Lotu, Numer_Bagazu, _)),
+    assert(baga¿(ID_Pasa¿era, Numer_Lotu, Numer_Bagazu, NowyStatus)).
+
+% Wyszukiwanie rezerwacji dla pasa¿era
+znajdŸ_rezerwacje(ID_Pasa¿era, Rezerwacje) :-
+    findall([Numer_Lotu, Klasa, Miejsce], rezerwacja(ID_Pasa¿era, Numer_Lotu, Klasa, Miejsce), Rezerwacje).
+
+% Przypisywanie miejsc pasa¿erom
+przypisz_miejsce(ID_Pasa¿era, Numer_Lotu, Miejsce) :-
+    retract(rezerwacja(ID_Pasa¿era, Numer_Lotu, Klasa, _)),
+    assert(rezerwacja(ID_Pasa¿era, Numer_Lotu, Klasa, Miejsce)).
+
+% Aktualizacja statusu lotu
+aktualizacja_statusu_lotu(Numer_Lotu, NowyStatus) :-
+    retract(lot(Numer_Lotu, Data, Miasto_Odlotu, Miasto_Przylotu, _)),
+    assert(lot(Numer_Lotu, Data, Miasto_Odlotu, Miasto_Przylotu, NowyStatus)).
+
+% Generowanie listy pasa¿erów na dany lot
+lista_pasa¿erów(Numer_Lotu, ListaPasa¿erów) :-
+    findall([ID_Pasa¿era, Imiê, Nazwisko],
+        (rezerwacja(ID_Pasa¿era, Numer_Lotu, _, _),
+        pasa¿er(ID_Pasa¿era, Imiê, Nazwisko, _, _)),
+        ListaPasa¿erów).
+
+% Generowanie listy wszystkich lotów
+lista_lotów(ListaLotów) :-
+    findall([Numer_Lotu, Data, Miasto_Odlotu, Miasto_Przylotu, Status],
+        lot(Numer_Lotu, Data, Miasto_Odlotu, Miasto_Przylotu, Status),
+        ListaLotów).
+
+
+% Wysy³anie powiadomieñ pasa¿erom
+wyœlij_powiadomienie(ID_Pasa¿era, Wiadomoœæ) :-
+    pasa¿er(ID_Pasa¿era, Imiê, Nazwisko, _, _),
+    format('Wysy³anie powiadomienia do ~w ~w: ~w~n', [Imiê, Nazwisko, Wiadomoœæ]).
+
+% Wysy³anie powiadomieñ o zmianie statusu lotu
+powiadom_o_zmianie_statusu_lotu(Numer_Lotu, NowyStatus) :-
+    aktualizacja_statusu_lotu(Numer_Lotu, NowyStatus),
+    findall(ID_Pasa¿era, rezerwacja(ID_Pasa¿era, Numer_Lotu, _, _), Pasa¿erowie),
+    maplist(wyœlij_powiadomienie_o_zmianie_statusu_lotu(Numer_Lotu, NowyStatus), Pasa¿erowie).
+
+wyœlij_powiadomienie_o_zmianie_statusu_lotu(Numer_Lotu, NowyStatus, ID_Pasa¿era) :-
+    format(atom(Wiadomoœæ), 'Lot ~w ma nowy status: ~w', [Numer_Lotu, NowyStatus]),
+    wyœlij_powiadomienie(ID_Pasa¿era, Wiadomoœæ).
+
+% Kontrola bezpieczeñstwa
+% kontrola_bezpieczeñstwa(ID_Pasa¿era, Numer_Lotu, Status).
+kontrola_bezpieczeñstwa(1, 'LO123', 'Przeszed³').
+kontrola_bezpieczeñstwa(2, 'LO123', 'Przeszed³').
+
+wykonaj_kontrole_bezpieczeñstwa(ID_Pasa¿era, Numer_Lotu) :-
+    odprawa(ID_Pasa¿era,Numer_Lotu,'Odprawiony'),
+    \+ kontrola_bezpieczeñstwa(ID_Pasa¿era,Numer_Lotu,_),
+    assert(kontrola_bezpieczeñstwa(ID_Pasa¿era, Numer_Lotu, 'Przeszed³')).
+
+% Przyk³adowe zapytania
+% ?- dodaj_pasa¿era(5, 'Piotr', 'Zieliñski', 'Polska', 'JKL123456').
+% ?- dodaj_rezerwacje(5, 'LO123', 'Ekonomiczna', '16D').
+% ?- znajdŸ_rezerwacje(1, Rezerwacje).
+% ?- przypisz_miejsce(1, 'LO123', '10D').
+% ?- odprawa_pasa¿era(5, 'LO123').
+% ?- dodaj_baga¿(5, 'LO123', 'BG003').
+% ?- aktualizacja_statusu_baga¿u('BG003', 'Za³adowany').
+% ?- wykonaj_kontrole_bezpieczeñstwa(5, 'LO123').
+% ?- aktualizacja_statusu_lotu('LO123', 'OpóŸniony').
+% ?- lista_pasa¿erów('LO123', ListaPasa¿erów).
+% ?- powiadom_o_zmianie_statusu_lotu('LO123', 'OpóŸniony').
